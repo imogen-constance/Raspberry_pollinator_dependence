@@ -1,0 +1,254 @@
+###31/10/2021 Exclusion study fruit set analysis###
+
+#import data set#----
+df <- read.csv("Spatial variation fruit set weight.csv") #reformat raspberry exclusion excel sheet
+names(df)
+
+install.packages("dplyr")
+library(dplyr)
+
+
+##df formatting##----
+df <- df[-c(1:10, 142:151),]#remove dummy 2019 HandOpen data for plots 
+
+df$fruitfail <- (df$No.of.flowers)-(df$Fruit) #create column number of flowers that failed to set any fruit 
+df$Fruit_set_new <- cbind(df$Fruit, df$fruitfail) #create success/failure for all fruit-includes variable flower numbers in model
+df$Marketable_new <- cbind(df$Marketable, df$Failures) #create success/failure for marketable fruit using failures column(flowers that did not set marketable fruit) 
+df$check <- (df$No.of.flowers)-(df$Fruit)-(df$fruitfail) #should =0 if success/failure worked
+
+df$Year <- factor(df$Year, levels = c("2019", "2020", "2021"))
+df$Treatment <- factor(df$Treatment, levels = c("Open", "HandOpen", "Closed", "Hand"))
+df$Plant_ID <- as.numeric(df$Plant_ID)
+df$Crop <- factor(df$Crop, levels = c("DJ", "Sapphire"))
+df$Location <- factor(df$Location)
+
+df$Fruit_set_new
+
+aggregate(df$No.of.flowers, by=list(Treatment=df$Treatment), FUN=sum)
+aggregate(df$No.of.flowers, by=list(Year=df$Year), FUN=sum)
+aggregate(df$No.of.flowers, by=list(Crop=df$Crop), FUN=sum)
+
+# data exploration for fruit set---- 
+install.packages("ggplot2")
+library(ggplot2)
+
+library(RColorBrewer)
+
+
+hist(df$Fruit_set_new)
+shapiro.test(df$Fruit_set_new)
+
+p <- ggplot(data = df, aes(x = Treatment, y = Fruit_set)) + geom_point() 
+plot <- p + facet_wrap(df$Crop)
+plot
+
+y <- ggplot(data = df, aes(x = Treatment, y = Fruit_set)) + geom_point() 
+plot <- y + facet_wrap(df$Year)
+plot
+
+p <- ggplot(data = df, aes(x = Crop, y = Fruit_set)) + geom_point()
+p
+
+DJ <- subset(df, Crop=="DJ")
+dj19 <- ggplot(data = DJ, aes(x = Treatment, y = Fruit_set)) + geom_point(aes(color=Plant_ID))  
+plot <- dj19 + facet_grid(DJ$Year)
+plot
+
+SAP <- subset(df, Crop=="Sapphire")
+sap19 <- ggplot(data = SAP, aes(x = Treatment, y = Fruit_set)) + geom_point(aes(color=Plant_ID))  
+plot <- sap19 + facet_grid(SAP$Year)
+plot
+
+market <- ggplot(data = df, aes(x = Treatment, y = Marketable.fruit.set)) + geom_point() #data exploration for marketable fruit set 
+mplot <- market + facet_grid(Year~ Crop)
+mplot
+
+#glm fruit set#----
+
+#stepwise binomial glm#====
+model.null = glm(Fruit_set_new ~ 1, data = df, family = binomial(link = "logit")) #step procedure model selection based on AIC
+model.full = glm(Fruit_set_new ~ Crop*Year + Year*Treatment + Crop*Treatment, data=df, family=binomial (link="logit"))
+step(model.null, scope = list(upper=model.full),
+     direction = "both",
+     test="Chisq",
+     data=df)
+model.final = glm(Fruit_set_new ~ Year + Treatment + Crop, 
+                  data=df,
+                  family = binomial(link = "logit"))
+
+summary(model.final)
+
+##model validation##====
+#check for overdispersion - overdispersed if >1.5
+overdispersion <- model.final$deviance/model.final$df.residual
+overdispersion #if overdispersed used quasibinomial if underdispersed <0.7 remove terms in model 
+
+#binomial fruit set----
+
+mod1 <- glm(Fruit_set_new ~ Year*Treatment + Crop*Treatment, data=df, family=binomial)
+drop1(mod1, test="Chi")
+summary(mod1)
+
+mod2 <- glm(Fruit_set_new ~ Crop*Treatment + Year, data=df, family=binomial)
+anova(mod1, mod2, test = "Chi")
+drop1(mod2, test="Chi") 
+summary(mod2)
+
+mod3 <- glm(Fruit_set_new ~ Crop + Year + Treatment, data=df, family=binomial)
+anova(mod2, mod3, test = "Chi")
+drop1(mod3, test="Chi") 
+summary(mod3)
+
+##model validation##====
+
+##plot deviance residuals vs fitted values of y 
+devresid <- resid(mod3, type = "deviance")
+plot(devresid ~ mod3$fitted.values)
+
+##Plot deviance residuals vs each independent variable not included in model
+plot(devresid ~ df$Plant_ID)
+plot(devresid ~ df$Location)
+plot(devresid ~ df$Crop)
+
+##posthoc testing##====
+install.packages("emmeans")
+library(emmeans)
+
+emmyear <- emmeans (mod3, pairwise ~ Year) # creates pairwise comparisons
+emmtreat <- emmeans (mod3, pairwise ~ Treatment) # creates pairwise comparisons
+emmcrop <- emmeans (mod3, pairwise ~ Crop) # creates pairwise comparisons
+emmyear
+emmtreat
+emmcrop
+
+##ttest for 2019 Open vs Hand##----
+
+dft <- read.csv(file.choose()) #Fruit set 2019 for t test
+names(df)
+
+install.packages("dplyr")
+library(dplyr)
+
+
+##df formatting##----
+dft$fruitfail <- (dft$No.of.flowers)-(dft$Fruit) #create column number of flowers that failed to set any fruit 
+dft$Fruit_set_new <- cbind(dft$Fruit, dft$fruitfail) #create success/failure for all fruit-includes variable flower numbers in model
+dft$Marketable_new <- cbind(dft$Marketable, dft$Failures) #create success/failure for marketable fruit using failures column(flowers that did not set marketable fruit) 
+dft$check <- (dft$No.of.flowers)-(dft$Fruit)-(dft$fruitfail) #should =0 if success/failure worked
+
+dft$Treatment <- factor(dft$Treatment, levels = c("Open", "Hand"))
+dft$Plant_ID <- as.numeric(dft$Plant_ID)
+dft$Crop <- factor(dft$Crop, levels = c("DJ", "Sapphire"))
+dft$Location <- factor(dft$Location)
+
+hist(dft$Fruit_set)
+shapiro.test(dft$Fruit_set)
+
+t.test(Fruit_set~Treatment, data = dft)
+
+hand <- aov(Fruit_set ~ Treatment, data = dft)
+summary.aov(hand)
+
+##group means##----
+library(dplyr)
+Yeartreatmeans <- df %>% 
+  group_by(Year, Treatment) %>% 
+  summarise(mean = mean(Fruit_set),
+            ste = sd(Fruit_set)/sqrt(length(Fruit_set)))
+
+Croptreatmeans <- df %>% 
+  group_by(Crop, Treatment) %>% 
+  summarise(mean = mean(Fruit_set),
+            ste = sd(Fruit_set)/sqrt(length(Fruit_set)))
+
+Cropmeans <- df %>% 
+  group_by(Crop) %>% 
+  summarise(mean = mean(Fruit_set),
+            ste = sd(Fruit_set)/sqrt(length(Fruit_set)))
+
+Yearmeans <- df %>% 
+  group_by(Year) %>% 
+  summarise(mean = mean(Fruit_set),
+            ste = sd(Fruit_set)/sqrt(length(Fruit_set)))
+
+Treatmeans <- df %>% 
+  group_by(Treatment) %>% 
+  summarise(mean = mean(Fruit_set),
+            ste = sd(Fruit_set)/sqrt(length(Fruit_set)))
+
+#marketable fruit set#----
+hist(df$Marketable_new)
+shapiro.test(df$Marketable_new)
+
+#stepwise binomial glm#====
+model.null = glm(Marketable_new ~ 1, data = df, family = binomial(link = "logit")) #step procedure model selection based on AIC
+model.full = glm(Marketable_new ~ Crop*Year + Year*Treatment + Crop*Treatment, data=df, family=binomial (link="logit"))
+step(model.null, scope = list(upper=model.full),
+     direction = "both",
+     test="Chisq",
+     data=df)
+model.final = glm(Fruit_set_new ~ Year + Treatment + Crop,
+                  data=df,
+                  family = binomial(link = "logit"))
+
+summary(model.final)
+
+##model validation##====
+#check for overdispersion - overdispersed if >1.5
+overdispersion <- model.final$deviance/model.final$df.residual
+overdispersion #if overdispersed used quasibinomial if underdispersed <0.7 remove terms from model
+
+devresid <- resid(model.final, type = "deviance")
+plot(devresid ~ model.final$fitted values)
+
+#binomial marketable fruit set----
+
+df$Year <- factor(df$Year, levels = c("2019", "2020", "2021"))
+
+marketmod1 <- glm(Marketable_new ~ Year*Treatment + Crop*Treatment, data=df, family=binomial)
+drop1(marketmod1, test="Chi") 
+summary(marketmod1)
+Anova(marketmod1)
+
+library(glmmTMB)
+install.packages('TMB', type = 'source')
+library(TMB)
+
+suppressMessages(library(lme4))
+suppressMessages(require(glmmTMB))
+install.packages("bbmle")
+suppressMessages(library(bbmle))
+
+marketmod1 <- glmer(Marketable_new ~ Year + Treatment + Crop + (1|Plant_ID), data=df, family=binomial)
+summary(marketmod1)
+Anova(marketmod1)
+
+plot(marketmod1)
+
+marketmod2 <- glmmTMB(Marketable_new ~ Year + Treatment + Crop + (1|Plant_ID), data=df, family=binomial)
+summary(marketmod2)
+Anova(marketmod1)
+
+install.packages("DHARMa")
+library(DHARMa)
+
+testDispersion(marketmod1)
+
+simulationOutput2 <- simulateResiduals(fittedModel = marketmod2, plot = F)
+residuals(simulationOutput2)
+plot(simulationOutput2)
+testZeroInflation(simulationOutput2)
+testCategorical(simulationOutput2, catPred = df$Treatment)
+
+overdisp_fun <- function(model) {vpars <- function(m)
+{nrow(m)*(nrow(m) +1/2)}
+model.df <- sum(sapply(VarCorr(model), vpars))+
+  length(fixef(model))
+rdf <- nrow(model.frame(model))-model.df
+rp <- residuals(model, type="pearson")
+Pearson.chisq <- sum(rp^2)
+prat <- Pearson.chisq/rdf
+pval <- pchisq(Pearson.chisq, df=rdf, lower.tail = FALSE)
+c(chisq=Pearson.chisq, ratio=prat, rdf=rdf, p=pval)}
+
+overdisp_fun(marketmod1)
