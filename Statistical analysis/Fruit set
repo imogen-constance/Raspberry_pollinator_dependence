@@ -18,7 +18,7 @@ df$check <- (df$No.of.flowers)-(df$Fruit)-(df$fruitfail) #should =0 if success/f
 
 df$Year <- factor(df$Year, levels = c("2019", "2020", "2021"))
 df$Treatment <- factor(df$Treatment, levels = c("Open", "HandOpen", "Closed", "Hand"))
-df$Plant_ID <- as.numeric(df$Plant_ID)
+df$Plant_ID <- factor(df$Plant_ID)
 df$Crop <- factor(df$Crop, levels = c("DJ", "Sapphire"))
 df$Location <- factor(df$Location)
 
