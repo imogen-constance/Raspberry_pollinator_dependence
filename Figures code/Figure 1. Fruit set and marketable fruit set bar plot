@@ -1,7 +1,7 @@
-###Fruit set by year###
+###Marketable fruit set by year###
 pdata <- df %>% group_by(Year, Treatment) %>%            # group data for limit calculation
-  mutate(upper = mean(Marketable.fruit.set) + sd(Marketable.fruit.set)/sqrt(length(Marketable.fruit.set)), # upper limit for error bar
-         lower = mean(Marketable.fruit.set) - sd(Marketable.fruit.set)/sqrt(length(Marketable.fruit.set))) # lower limit for error bar
+  mutate(upper = mean(Marketable_fruit_set) + sd(Marketable_fruit_set)/sqrt(length(Marketable_fruit_set)), # upper limit for error bar
+         lower = mean(Marketable_fruit_set) - sd(Marketable_fruit_set)/sqrt(length(Marketable_fruit_set))) # lower limit for error bar
 
 dots <- df %>% group_by(Year, Treatment)
 
@@ -21,7 +21,7 @@ theme_midge <- function(){theme(panel.grid.major = element_blank(), #create blan
 Treatlabs <- c("IP", "IPS", "IE", "IES")
 
 # plot
-yearplot<- ggplot(pdata, aes(x = Treatment, y = Marketable.fruit.set, label = Year, fill = Treatment, alpha = Year))+
+yearplot<- ggplot(pdata, aes(x = Treatment, y = Marketable_fruit_set, label = Year, fill = Treatment, alpha = Year))+
   scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = brewer.pal(4, "Dark2"))+
   scale_alpha_manual(breaks = c("2018", "2019", "2020", "2021"), labels = c("2018", "2019", "2020", "2021"), values = c(.7, .7, .7, .7))+ #values = c(.0, .2, .5, .8))+
   stat_summary(fun = mean, geom = "bar", position = position_dodge(width = .9), size = 3) +
@@ -46,13 +46,13 @@ df<-subset(df, Year!="2019")
 df
 
 
-pdata <- df %>% group_by(Crop, Treatment) %>%            # group data for limit calculation
-  mutate(upper = mean(Marketable.fruit.set) + sd(Marketable.fruit.set)/sqrt(length(Marketable.fruit.set)), # upper limit for error bar
-         lower = mean(Marketable.fruit.set) - sd(Marketable.fruit.set)/sqrt(length(Marketable.fruit.set))) # lower limit for error bar
+pdata <- df %>% group_by(Cultivar, Treatment) %>%            # group data for limit calculation
+  mutate(upper = mean(Marketable_fruit_set) + sd(Marketable_fruit_set)/sqrt(length(Marketable_fruit_set)), # upper limit for error bar
+         lower = mean(Marketable_fruit_set) - sd(Marketable_fruit_set)/sqrt(length(Marketable_fruit_set))) # lower limit for error bar
 
 dots <- df %>% group_by(Crop, Treatment)
 
-cropplot<- ggplot(pdata, aes(x = Treatment, y = Marketable.fruit.set, label = Treatment, fill = Treatment, alpha = Treatment))+
+cropplot<- ggplot(pdata, aes(x = Treatment, y = Marketable_fruit_set, label = Treatment, fill = Treatment, alpha = Treatment))+
   scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = brewer.pal(4, "Dark2"))+
   scale_alpha_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c(.7, .7, .7, .7))+
   stat_summary(fun = mean, geom = "bar", position = position_dodge(width = .9), size = 3) +
@@ -71,91 +71,17 @@ cropplot
 
 ggsave(file = "Marketfruitsetcropplot.png", width = 20, height = 13, units = "cm")
 
-df19 <- subset(df, Year=="2019")
-df20 <- subset(df, Year=="2020")
-df21 <- subset(df, Year=="2021")
 
-fruitdata19 <- df19 %>% group_by(Year, Treatment) %>%            # group data for limit calculation
+###Fruit set###
+
+#df <- df[-c(1:10, 142:151),]
+DJ <- subset(df, Cultivar=="Diamond Jubilee")
+Sap <- subset(df, Cultivar=="Sapphire")
+DJfruitdata <- DJ %>% group_by(Cultivar, Treatment) %>%            # group data for limit calculation
   mutate(upper = mean(Fruit_set) + sd(Fruit_set)/sqrt(length(Fruit_set)), # upper limit for error bar
          lower = mean(Fruit_set) - sd(Fruit_set)/sqrt(length(Fruit_set))) # lower limit for error bar
 
-plot19<- ggplot(fruitdata19, aes(x = Treatment, y = Fruit_set, fill = Treatment, alpha = Year))+
-  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1B9E77", "white", "#7570B3", "#E7298A"))+
-  stat_summary(fun = mean, geom = "bar", position = position_dodge(width = .9), size = 3) + 
-  xlab("\nPollination treatment") + ylab("% Fruit set\n")+
-  geom_point(aes(color = Treatment), position = position_jitterdodge())+ #add jittered data points 
-  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1B9E77", "white", "#7570B3", "#E7298A"))+
-  scale_alpha_manual(breaks = c("2018", "2019", "2020", "2021"), labels = c("2018", "2019", "2020", "2021"), values = c(.0, .2, .5, .8))+
-  geom_errorbar(aes(ymin = lower, ymax = upper),
-                width = .2,  size = .5,                  # Width of the error bars
-                position = position_dodge(.9))+
-  scale_x_discrete(labels= Treatlabs)+
-  scale_y_continuous(limits = c(0,NA), expand = expansion(mult = c(0, 0.1)))+
-  guides(alpha = "none")+
-  theme_midge()+
-  facet_grid(~Year)
-
-plot19
-
-ggsave(file = "2019fruitplot.png", width = 13, height = 13, units = "cm")
-
-fruitdata20 <- df20 %>% group_by(Year, Treatment) %>%            # group data for limit calculation
-  mutate(upper = mean(Fruit_set) + sd(Fruit_set)/sqrt(length(Fruit_set)), # upper limit for error bar
-         lower = mean(Fruit_set) - sd(Fruit_set)/sqrt(length(Fruit_set))) # lower limit for error bar
-
-plot20<- ggplot(fruitdata20, aes(x = Treatment, y = Fruit_set, fill = Treatment, alpha = Year))+
-  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = brewer.pal(4, "Dark2"))+
-  stat_summary(fun = mean, geom = "bar", position = position_dodge(width = .9), size = 3) + 
-  xlab("\nPollination treatment") + ylab("% Fruit set\n")+
-  geom_point(aes(color = Treatment), position = position_jitterdodge())+ #add jittered data points 
-  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = brewer.pal(4, "Dark2"))+
-  scale_alpha_manual(breaks = c("2018", "2019", "2020", "2021"), labels = c("2018", "2019", "2020", "2021"), values = c(.0, .4, .6, .8))+
-  geom_errorbar(aes(ymin = lower, ymax = upper),
-                width = .2,  size = .5,                  # Width of the error bars
-                position = position_dodge(.9))+
-  scale_x_discrete(labels= Treatlabs)+
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-  guides(alpha = "none")+
-  theme_midge()+
-  facet_grid(~Year)
-
-plot20
-
-ggsave(file = "2020fruitplot.png", width = 13, height = 13, units = "cm")
-
-fruitdata21 <- df21 %>% group_by(Year, Treatment) %>%            # group data for limit calculation
-  mutate(upper = mean(Fruit_set) + sd(Fruit_set)/sqrt(length(Fruit_set)), # upper limit for error bar
-         lower = mean(Fruit_set) - sd(Fruit_set)/sqrt(length(Fruit_set))) # lower limit for error bar
-
-plot21<- ggplot(fruitdata21, aes(x = Treatment, y = Fruit_set, fill = Treatment, alpha = Year))+
-  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = brewer.pal(4, "Dark2"))+
-  stat_summary(fun = mean, geom = "bar", position = position_dodge(width = .9), size = 3) + 
-  xlab("\nPollination treatment") + ylab("% Fruit set\n")+
-  geom_point(aes(color = Treatment), position = position_jitterdodge())+ #add jittered data points 
-  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = brewer.pal(4, "Dark2"))+
-  scale_alpha_manual(breaks = c("2018", "2019", "2020", "2021"), labels = c("2018", "2019", "2020", "2021"), values = c(.0, .4, .6, .8))+
-  geom_errorbar(aes(ymin = lower, ymax = upper),
-                width = .2,  size = .5,                  # Width of the error bars
-                position = position_dodge(.9))+
-  scale_x_discrete(labels= Treatlabs)+
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-  guides(alpha = "none")+
-  theme_midge()+
-  facet_grid(~Year)
-
-plot21
-
-ggsave(file = "2021fruitplot.png", width = 13, height = 13, units = "cm")
-###Total fruit set###
-
-df <- df[-c(1:10, 142:151),]
-DJ <- subset(df, Crop=="Diamond Jubilee")
-Sap <- subset(df, Crop=="Sapphire")
-DJfruitdata <- DJ %>% group_by(Crop, Treatment) %>%            # group data for limit calculation
-  mutate(upper = mean(Fruit_set) + sd(Fruit_set)/sqrt(length(Fruit_set)), # upper limit for error bar
-         lower = mean(Fruit_set) - sd(Fruit_set)/sqrt(length(Fruit_set))) # lower limit for error bar
-
-Sapfruitdata <- Sap %>% group_by(Crop, Treatment) %>%            # group data for limit calculation
+Sapfruitdata <- Sap %>% group_by(Cultivar, Treatment) %>%            # group data for limit calculation
   mutate(upper = mean(Fruit_set) + sd(Fruit_set)/sqrt(length(Fruit_set)), # upper limit for error bar
          lower = mean(Fruit_set) - sd(Fruit_set)/sqrt(length(Fruit_set))) # lower limit for error bar
 
@@ -174,8 +100,7 @@ djfruitplot<- ggplot(DJfruitdata, aes(x = Treatment, y = Fruit_set, fill = Treat
   scale_x_discrete(labels= Treatlabs)+
   scale_y_continuous(limits = c(0,NA), expand = expansion(mult = c(0, 0.1)))+
   guides(alpha = "none")+
-  theme_midge()+
-  facet_grid(~Crop)
+  theme_midge()
 
 djfruitplot
 
@@ -194,8 +119,7 @@ sapfruitplot<- ggplot(Sapfruitdata, aes(x = Treatment, y = Fruit_set, fill = Tre
                 position = position_dodge(.9))+
   scale_x_discrete(labels= Treatlabs)+
   scale_y_continuous(limits = c(0,NA), expand = expansion(mult = c(0, 0.1)))+
-  theme_midge()+
-  facet_grid(~Crop)
+  theme_midge()
 
 sapfruitplot
 
