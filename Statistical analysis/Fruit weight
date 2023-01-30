@@ -1,0 +1,652 @@
+##01/11/21 fruit weight and size exclusion study analysis##
+dffruit <- read.csv("Fruit weight 2020 2021.csv") #reformat raspberry exclusion excel sheet
+names(dffruit)
+
+dffruit$Year <- factor(dffruit$Year)
+dffruit$Treatment <- factor(dffruit$Treatment, levels = c("Open", "HandOpen", "Closed", "Hand"))
+dffruit$Length.mm <- as.numeric(dffruit$Length.mm)
+dffruit$Variety <- factor(dffruit$Variety)
+dffruit$Plant_ID <- factor(dffruit$Plant_ID)
+dffruit$Branch <- factor(dffruit$Branch)
+dffruit$Reason <- factor(dffruit$Reason)
+dffruit$Quality.size <- factor(dffruit$Quality.size)
+#dffruit$Marketable <- factor(dffruit$Marketable)
+#dffruit$Marketable.quality <- factor(dffruit$Marketable.quality)
+#dffruit$Marketable.1 <- factor(dffruit$Marketable.1)
+
+install.packages("dplyr")
+library(dplyr)
+install.packages("tidyverse")
+library(tidyverse)
+
+install.packages("Matrix")
+library("Matrix")
+
+install.packages("ggplot2")
+library(ggplot2)
+
+dj<- subset(dffruit, Variety=="DJ")
+
+sap<- subset(dffruit, Variety=="Sap")
+
+dj <- dj %>% group_by(Plant_ID, Branch) %>% add_count() ##add number of berries
+
+sap <- sap %>% group_by(Plant_ID, Branch) %>% add_count() ##add number of berries
+
+dj$n %>% group_by(Plant_ID, Branch)
+
+##DJ correlations##----
+
+install.packages("stats")
+library(stats)
+
+pairs(dffruit)
+
+cor(dj$Weight, dj$Length.mm, use = "complete.obs")
+cor.test(dj$Weight, dj$Length.mm)
+
+hist(dj$Weight); hist(dj$Length.mm)
+plot(dj$Weight ~ dj$Length.mm)
+abline(lm(dj$Weight ~ dj$Length.mm))
+scatter.smooth(dj$Weight ~ dj$Length.mm)
+
+cor(dj$Weight, dj$Width, use = "complete.obs")
+cor.test(dj$Weight, dj$Width)
+
+hist(dj$Weight); hist(dj$Width)
+plot(dj$Weight ~ dj$Width)
+abline(lm(dj$Weight ~ dj$Width))
+scatter.smooth(dj$Weight ~ dj$Width)
+
+r_squared <- (cor(dj$Weight, dj$Width, use = "complete.obs"))^2
+r_squared
+
+##Sap correlations##----
+
+cor(sap$Weight, sap$Length.mm, use = "complete.obs")
+cor.test(sap$Weight, sap$Length.mm)
+
+hist(sap$Weight); hist(sap$Length.mm)
+plot(sap$Weight ~ sap$Length.mm)
+abline(lm(sap$Weight ~ sap$Length.mm))
+scatter.smooth(sap$Weight ~ sap$Length.mm)
+
+r_squared <- (cor (sap$Weight, sap$Length.mm, use = "complete.obs"))^2
+r_squared
+
+cor(sap$Weight, sap$Width, use = "complete.obs")
+cor.test(sap$Weight, sap$Width)
+
+hist(sap$Weight); hist(sap$Width)
+plot(sap$Weight ~ sap$Width)
+abline(lm(sap$Weight ~ sap$Width))
+scatter.smooth(sap$Weight ~ sap$Width)
+
+r_squared <- (cor (sap$Weight, sap$Width, use = "complete.obs"))^2
+r_squared
+
+
+#fruit weight analysis----
+#DJ
+hist(dj$Weight)
+shapiro.test(dj$Weight)
+dj$logdjw<-log(dj$Weight)
+hist(logdjw)
+shapiro.test(logdjw)
+qqnorm(dj$Weight);qqline(dj$Weight, col = 2)
+
+
+#Sap
+hist(sap$Weight)
+shapiro.test(sap$Weight)
+sap$logsapw<-log(sap$Weight)
+hist(logsapw)
+shapiro.test(logsapw)
+qqnorm(sap$Weight);qqline(sap$Weight, col = 2)
+
+#glm fruit weight#----
+
+
+install.packages("lme4")
+library(lme4)
+
+install.packages("lmerTest")
+library(lmerTest)
+
+install.packages("car")
+library(car)
+
+install.packages("MuMIn")
+library(MuMIn)
+
+##dj marketable fruit weight
+
+weightdjmod <- lmer(Marketable.weight ~ Year + Treatment + (1|Plant_ID/Branch), data = dj)
+summary(weightdjmod)
+#Random effects:
+#  Groups          Name        Variance Std.Dev.
+#Branch:Plant_ID (Intercept) 1.927    1.388   
+#Plant_ID        (Intercept) 1.076    1.037   
+#Residual                    3.193    1.787   
+#Number of obs: 966, groups:  Branch:Plant_ID, 104; Plant_ID, 26
+
+#Fixed effects:
+#                  Estimate Std. Error      df t value Pr(>|t|)    
+#(Intercept)         4.8007     0.4793 44.7049  10.017 5.31e-13 ***
+#Year2021            0.9414     0.5172 24.0931   1.820   0.0812 .  
+#TreatmentHandOpen   0.2560     0.4197 75.0249   0.610   0.5436    
+#TreatmentClosed    -3.3696     0.4183 74.1315  -8.054 1.01e-11 ***
+#TreatmentHand       0.2357     0.4164 72.9372   0.566   0.5732    
+#---
+#  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+#Correlation of Fixed Effects:
+#  (Intr) Yr2021 TrtmHO TrtmnC
+#Year2021    -0.665                     
+#TrtmntHndOp -0.435  0.006              
+#TretmntClsd -0.431 -0.002  0.494       
+#TreatmntHnd -0.435  0.001  0.496  0.498
+
+anova(weightdjmod)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#          Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
+#Year       10.58  10.579     1 24.093  3.3132   0.08117 .  
+#Treatment 340.59 113.528     3 74.553 35.5566 2.249e-14 ***
+#---
+#Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+weightdjmod2 <- lmer(Weight ~ Year + Treatment + (1|Plant_ID/Branch), data = dj)
+summary(weightdjmod2)
+
+#Random effects:
+#  Groups          Name        Variance Std.Dev.
+#Branch:Plant_ID (Intercept) 0.6808   0.8251  
+#Plant_ID        (Intercept) 0.6465   0.8041  
+#Residual                    1.5094   1.2286  
+#Number of obs: 966, groups:  Branch:Plant_ID, 104; Plant_ID, 26
+
+#Fixed effects:
+#                  Estimate Std. Error       df t value Pr(>|t|)    
+#(Intercept)        5.77826    0.33164 38.53882  17.423  < 2e-16 ***
+#Year2021           0.30779    0.37352 24.07728   0.824    0.418    
+#TreatmentHandOpen  0.34588    0.25601 74.07985   1.351    0.181    
+#TreatmentClosed   -2.12342    0.25500 72.98819  -8.327 3.42e-12 ***
+#TreatmentHand      0.09775    0.25356 71.56990   0.386    0.701    
+#---
+#  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+#Correlation of Fixed Effects:
+#  (Intr) Yr2021 TrtmHO TrtmnC
+#Year2021    -0.694                     
+#TrtmntHndOp -0.383  0.006              
+#TretmntClsd -0.379 -0.002  0.492       
+#TreatmntHnd -0.383  0.001  0.495  0.497
+
+anova(weightdjmod2)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#           Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
+#Year        1.025   1.025     1 24.077   0.679     0.418    
+#Treatment 180.602  60.201     3 73.499  39.883 2.083e-15 ***
+#---
+#Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+getME(weightdjmod2, "b")
+
+r.squaredGLMM(weightdjmod)
+null.model <- lmer(Marketable.weight ~(1|Plant_ID/Branch), data = dj)
+r.squaredGLMM(null.model)
+
+r.squaredGLMM(weightdjmod2)
+null.model <- lmer(Marketable.weight ~ (1|Plant_ID/Branch), data = dj)
+r.squaredGLMM(null.model)
+
+
+##sap marketable fruit weight
+
+weightsapmod <- lmer(Marketable.weight ~ Year + Treatment + (1|Plant_ID/Branch), data = sap)
+summary(weightsapmod)
+
+#Random effects:
+#  Groups          Name        Variance Std.Dev.
+#Branch:Plant_ID (Intercept) 0.9066   0.9521  
+#Plant_ID        (Intercept) 0.8265   0.9091  
+#Residual                    3.6233   1.9035  
+#Number of obs: 1223, groups:  Branch:Plant_ID, 127; Plant_ID, 32
+
+#Fixed effects:
+#                  Estimate Std. Error      df t value Pr(>|t|)    
+#(Intercept)         6.8261     0.3275 55.7284  20.843   <2e-16 ***
+#Year2021            0.5139     0.3801 30.0052   1.352    0.186    
+#TreatmentHandOpen  -0.2911     0.2834 90.7212  -1.027    0.307    
+#TreatmentClosed    -4.5700     0.2841 91.5565 -16.088   <2e-16 ***
+#TreatmentHand      -0.3004     0.2863 91.1462  -1.049    0.297    
+#---
+#  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+#Correlation of Fixed Effects:
+#  (Intr) Yr2021 TrtmHO TrtmnC
+#Year2021    -0.619                     
+#TrtmntHndOp -0.435  0.001              
+#TretmntClsd -0.434  0.001  0.501       
+#TreatmntHnd -0.436  0.009  0.497  0.496
+
+anova(weightsapmod)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#           Sum Sq Mean Sq NumDF  DenDF  F value Pr(>F)    
+#Year         6.62    6.62     1 30.005   1.8281 0.1865    
+#Treatment 1290.38  430.13     3 91.036 118.7114 <2e-16 ***
+#---
+#Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+
+weightsapmod2 <- lmer(Weight ~ Year + Treatment + (1|Plant_ID/Branch), data = sap)
+summary(weightsapmod2)
+
+#Random effects:
+#  Groups          Name        Variance Std.Dev.
+#Branch:Plant_ID (Intercept) 0.5651   0.7517  
+#Plant_ID        (Intercept) 0.6350   0.7968  
+#Residual                    1.8021   1.3424  
+#Number of obs: 1223, groups:  Branch:Plant_ID, 127; Plant_ID, 32
+
+#Fixed effects:
+#                  Estimate Std. Error       df t value Pr(>|t|)    
+#(Intercept)        6.87695    0.26994 50.78861  25.476  < 2e-16 ***
+#Year2021           0.44249    0.32182 29.97818   1.375    0.179    
+#TreatmentHandOpen -0.05318    0.21703 90.93794  -0.245    0.807    
+#TreatmentClosed   -1.88977    0.21744 91.64288  -8.691 1.33e-13 ***
+#TreatmentHand     -0.15606    0.21922 91.27950  -0.712    0.478    
+#---
+#  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+#Correlation of Fixed Effects:
+#  (Intr) Yr2021 TrtmHO TrtmnC
+#Year2021    -0.635                     
+#TrtmntHndOp -0.404  0.001              
+#TretmntClsd -0.403  0.001  0.501       
+#TreatmntHnd -0.404  0.008  0.497  0.496
+
+anova(weightsapmod2)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#           Sum Sq Mean Sq NumDF  DenDF F value   Pr(>F)    
+#Year        3.407   3.407     1 29.978  1.8906   0.1793    
+#Treatment 190.037  63.346     3 91.190 35.1505 3.45e-15 ***
+#---
+#Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+r.squaredGLMM(weightsapmod)
+null.model <- lmer(Marketable.weight ~(1|Plant_ID/Branch), data = sap)
+r.squaredGLMM(null.model)
+
+r.squaredGLMM(weightsapmod2)
+null.model <- lmer(Marketable.weight ~ (1|Plant_ID/Branch), data = sap)
+r.squaredGLMM(null.model)
+
+##model fit
+
+sresid <- resid(weightdjmod, type = "pearson")
+hist(sresid)
+
+install.packages("LMERConvenienceFunctions")
+library(LMERConvenienceFunctions)
+mcp.fnc(weightdjmod)
+plotLMER.fnc(weightdjmod)
+
+sresid <- resid(weightsapmod1, type = "pearson")
+hist(sresid)
+
+mcp.fnc(weightsapmod1)
+plotLMER.fnc(weightsapmod1)
+
+install.packages("DHARMa")
+library(DHARMa)
+plot(weightdjmod)
+
+testDispersion(weightdjmod2)
+residuals(weightdjmod2)
+residuals(weightdjmod2, quantileFunction = qnorm, outlierValues = c(-7,7))
+
+simulationOutput <- simulateResiduals(fittedModel = weightdjmod2, plot = F)
+plot(simulationOutput)
+plotQQunif(simulationOutput) # left plot in plot.DHARMa()
+plotResiduals(simulationOutput)
+
+testDispersion(weightsapmod)
+residuals(weightsapmod)
+residuals(weightsapmod, quantileFunction = qnorm, outlierValues = c(-7,7))
+
+simulationOutput <- simulateResiduals(fittedModel = weightsapmod, plot = F)
+plot(simulationOutput)
+plotQQunif(simulationOutput) # left plot in plot.DHARMa()
+plotResiduals(simulationOutput)
+
+
+remove.packages("plyr")
+library(dplyr)
+Treatment <- dffruit %>% 
+  group_by(Treatment, Variety) %>% 
+  summarise(mean = mean(Marketable.weight),
+            ste = sd(Marketable.weight)/sqrt(length(Marketable.weight)))
+
+Treatmentyear <- dffruit %>% 
+  group_by(Treatment, Year) %>% 
+  summarise(mean = mean(Marketable.weight),
+            ste = sd(Marketable.weight)/sqrt(length(Marketable.weight)))
+
+Djtreat <- dj %>% 
+  group_by(Treatment) %>% 
+  dplyr::summarize(mean = mean(Marketable.weight),
+            ste = sd(Marketable.weight)/sqrt(length(Marketable.weight)))
+
+Djtreat
+
+Saptreat <- sap %>% 
+  group_by(Treatment) %>% 
+ dplyr:: summarize(mean = mean(Marketable.weight),
+            ste = sd(Marketable.weight)/sqrt(length(Marketable.weight)))
+
+Saptreat
+
+djberryno <- dj %>%
+  group_by(Plant_ID, Treatment) %>%
+  dplyr::summarize(mean = mean(n))
+
+
+sapberryno <- sap %>%
+  group_by(Plant_ID, Treatment) %>%
+  dplyr::summarize(mean = mean(n))
+
+branch_no <- dj %>%
+  group_by(Treatment, Year) %>%
+  summarize(distinct_points = n_distinct(Plant_ID))
+branch_no
+
+sap %>%
+  group_by(Treatment, Year) %>%
+  dplyr::summarize(mean = mean(Marketable.weight), n = n())
+
+
+branch_no <- sap %>%
+  group_by(Treatment, Year) %>%
+  summarize(distinct_points = n_distinct(Plant_ID))
+branch_no
+
+
+##marketable fruit weight plots
+
+library(ggplot2)
+library(RColorBrewer)
+Treatlabs <- c("IP", "IPS", "IE", "IES")
+
+theme_midge <- function(){theme(panel.grid.major = element_blank(), #create blank plot background
+                                panel.grid.minor = element_blank(),
+                                panel.background = element_blank(),
+                                axis.text=element_text(size=14, colour = "black"),
+                                axis.title=element_text(size=16,face="bold"),
+                                axis.line = element_line(colour = "black", size = .5, linetype = "solid"),
+                                axis.ticks = element_line(colour = "black", size = .5),
+                                axis.ticks.length = unit(6, "pt"),
+                                plot.margin = margin(2, 2, 1, 1, "cm"),
+                                legend.text = element_text(size=12, colour = "black"),
+                                legend.title = element_text(size=14,face="bold"))}
+
+dffruit %>%
+  group_by(Year, Treatment) %>%
+  mutate(Weight_filtered = case_when(Marketable.weight - quantile(Marketable.weight)[4] > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     quantile(Marketable.weight)[2] - Marketable.weight > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Treatment, Marketable.weight, fill = Treatment, alpha = Year)) + 
+  geom_point(aes(Treatment, Weight_filtered, colour = Treatment, alpha = Year), position = position_jitterdodge(jitter.width = .9))+
+  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  scale_alpha_manual(breaks = c("2020", "2021"), labels = c("2020", "2021"), values = c(.6, .8))+
+  xlab("\nPollination treatment") + ylab("Berry weight (g)\n")+
+  facet_grid(~ Variety)+
+  guides(alpha = "none")+
+  scale_x_discrete(labels= Treatlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "Marketableweightplot.png", width = 25, height = 13, units = "cm")
+
+dj %>%
+  group_by(Treatment) %>%
+  mutate(Weight_filtered = case_when(Marketable.weight - quantile(Marketable.weight)[4] > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     quantile(Marketable.weight)[2] - Marketable.weight > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Treatment, Marketable.weight, fill = Treatment, alpha = Treatment)) +
+  ylim(0, 12.5)+
+  geom_point(aes(Treatment, Weight_filtered, colour = Treatment, alpha = Treatment), position = position_jitterdodge(jitter.width = .9), size=.5)+
+  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = brewer.pal(4, "Dark2"))+
+  scale_alpha_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c(.8, .8, .8, .8))+
+  xlab("\nPollination treatment") + ylab("Berry weight (g)\n")+
+  guides(alpha = "none", fill = "none", colour = "none")+
+  scale_x_discrete(labels= Treatlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "Marketabledjweightplot.png", width = 17, height = 15, units = "cm")
+
+sap %>%
+  group_by(Treatment) %>%
+  mutate(Weight_filtered = case_when(Marketable.weight - quantile(Marketable.weight)[4] > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     quantile(Marketable.weight)[2] - Marketable.weight > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Treatment, Marketable.weight, fill = Treatment, alpha = Treatment)) + 
+  ylim(0, 12.5)+
+  geom_point(aes(Treatment, Weight_filtered, colour = Treatment, alpha = Treatment), position = position_jitterdodge(jitter.width = .9), size=.5)+
+  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  scale_alpha_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c(.8, .8, .8, .8))+
+  xlab("\nPollination treatment") + ylab("Berry weight (g)\n")+
+  guides(alpha = "none", fill = "none", colour = "none")+
+  scale_x_discrete(labels= Treatlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "Marketablesapweightplot.png", width = 17, height = 15, units = "cm")
+
+dj %>%
+  group_by(Treatment) %>%
+  mutate(Weight_filtered = case_when(Weight - quantile(Weight)[4] > 1.5*IQR(Weight) ~ NA_real_,
+                                     quantile(Weight)[2] - Weight > 1.5*IQR(Weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Treatment, Weight, fill = Treatment, alpha = Treatment)) +
+  ylim(0, 12.5)+
+  geom_point(aes(Treatment, Weight_filtered, colour = Treatment, alpha = Treatment), position = position_jitterdodge(jitter.width = .9), size=.5)+
+  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = brewer.pal(4, "Dark2"))+
+  scale_alpha_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c(.8, .8, .8, .8))+
+  xlab("\nPollination treatment") + ylab("Berry weight (g)\n")+
+  guides(alpha = "none", fill = "none", colour = "none")+
+  scale_x_discrete(labels= Treatlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "djweightplot.png", width = 17, height = 15, units = "cm")
+
+sap %>%
+  group_by(Treatment) %>%
+  mutate(Weight_filtered = case_when(Weight - quantile(Weight)[4] > 1.5*IQR(Weight) ~ NA_real_,
+                                     quantile(Weight)[2] - Weight > 1.5*IQR(Weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Treatment, Weight, fill = Treatment, alpha = Treatment)) + 
+  ylim(0, 12.5)+
+  geom_point(aes(Treatment, Weight_filtered, colour = Treatment, alpha = Treatment), position = position_jitterdodge(jitter.width = .9), size=.5)+
+  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  scale_alpha_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c(.8, .8, .8, .8))+
+  xlab("\nPollination treatment") + ylab("Berry weight (g)\n")+
+  guides(alpha = "none", fill = "none", colour = "none")+
+  scale_x_discrete(labels= Treatlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "sapweightplot.png", width = 17, height = 15, units = "cm") 
+
+
+##year plots 
+Yearlabs <- c("2020", "2021")
+dj %>% group_by(Year) %>%
+  mutate(Weight_filtered = case_when(Marketable.weight - quantile(Marketable.weight)[4] > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     quantile(Marketable.weight)[2] - Marketable.weight > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Year, Marketable.weight, fill = Year)) + 
+  ylim(0, 12.5)+
+  geom_point(aes(Year, Marketable.weight, color = Treatment), position = position_jitterdodge(), size=.5)+ #add jittered data points
+  scale_fill_manual(breaks = c("2020", "2021"), labels = c("2020", "2021"), values = c("grey", "grey"))+
+  xlab("\nYear") + ylab("Berry weight (g)\n")+
+  guides(fill = "none", colour = "none")+
+  scale_x_discrete(labels= Yearlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "Marketabledjyearweightplot.png", width = 17, height = 15, units = "cm")
+
+sap %>%
+  group_by(Year) %>%
+  mutate(Weight_filtered = case_when(Marketable.weight - quantile(Marketable.weight)[4] > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     quantile(Marketable.weight)[2] - Marketable.weight > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Year, Marketable.weight, fill = Year)) + 
+  ylim(0, 12.5)+
+  geom_point(aes(Year, Marketable.weight, color = Treatment), position = position_jitterdodge(), size=.5)+ #add jittered data points
+  scale_fill_manual(breaks = c("2020", "2021"), labels = c("2020", "2021"), values = c("grey", "grey"))+
+  xlab("\nYear") + ylab("Berry weight (g)\n")+
+  guides(fill = "none", colour = "none")+
+  scale_x_discrete(labels= Yearlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "Marketablesapyearweightplot.png", width = 17, height = 15, units = "cm")
+
+dj %>% group_by(Year) %>%
+  mutate(Weight_filtered = case_when(Weight - quantile(Weight)[4] > 1.5*IQR(Weight) ~ NA_real_,
+                                     quantile(Weight)[2] - Weight > 1.5*IQR(Weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Year, Weight, fill = Year)) + 
+  ylim(0, 12.5)+
+  geom_point(aes(Year, Weight, color = Treatment), position = position_jitterdodge(), size=.5)+ #add jittered data points
+  scale_fill_manual(breaks = c("2020", "2021"), labels = c("2020", "2021"), values = c("grey", "grey"))+
+  xlab("\nYear") + ylab("Berry weight (g)\n")+
+  guides(fill = "none", colour = "none")+
+  scale_x_discrete(labels= Yearlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "djyearweightplot.png", width = 17, height = 15, units = "cm")
+
+sap %>%
+  group_by(Year) %>%
+  mutate(Weight_filtered = case_when(Weight - quantile(Weight)[4] > 1.5*IQR(Weight) ~ NA_real_,
+                                     quantile(Weight)[2] - Weight > 1.5*IQR(Weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Year, Weight, fill = Year)) + 
+  ylim(0, 12.5)+
+  geom_point(aes(Year, Weight, color = Treatment), position = position_jitterdodge(), size=.5)+ #add jittered data points
+  scale_fill_manual(breaks = c("2020", "2021"), labels = c("2020", "2021"), values = c("grey", "grey"))+
+  xlab("\nYear") + ylab("Berry weight (g)\n")+
+  guides(fill = "none", colour = "none")+
+  scale_x_discrete(labels= Yearlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "sapyearweightplot.png", width = 17, height = 15, units = "cm")
+
+
+##seed set analysis##----with outliers
+
+dfseed <- read.csv("2020-2021 Seed total.csv")
+
+dfseed$Year <- factor(dfseed$Year)
+dfseed$Treatment <- factor(dfseed$Treatment, levels = c("Open", "Hand", "Closed", "HandOpen"))
+dfseed$Variety <- factor(dfseed$Variety)
+
+djseed<- subset(dfseed, Variety=="DJ")
+
+sapseed<- subset(dfseed, Variety=="Sap")
+
+#DJ
+hist(djseed$Drupelet.seed.number)
+shapiro.test(djseed$Drupelet.seed.number)
+
+#Sap
+hist(sapseed$Drupelet.seed.number)
+shapiro.test(sapseed$Drupelet.seed.number)
+
+install.packages("lme4")
+library(lme4)
+
+seeddj <- glm(Drupelet.seed.number ~ Year*Treatment, data=djseed, family=gaussian (link="identity"))
+drop1(seeddj, test="Chi") # use to check variables to drop
+
+seeddj2 <- glm(Drupelet.seed.number ~ Year + Treatment, data=djseed, family=gaussian (link="identity"))
+drop1(seeddj2, test="Chi") 
+summary(seeddj2)
+
+emmseedyeartreat <- emmeans (seeddj2, pairwise ~ Year*Treatment) # creates pairwise comparisons
+emmseedyeartreat
+
+#sap
+
+seedsap <- glm(Drupelet.seed.number ~ Year*Treatment, data=sapseed, family=gaussian (link="identity"))
+drop1(seedsap, test="Chi") 
+
+seedsap2 <- glm(Drupelet.seed.number ~ Year + Treatment, data=sapseed, family=gaussian (link="identity"))
+anova(seedsap, seedsap2, test = "F")
+drop1(seedsap2, test="Chi") 
+
+seedsap3 <- glm(Drupelet.seed.number ~ Treatment, data=sapseed, family=gaussian (link="identity"))
+anova(seedsap2, seedsap3, test = "F")
+drop1(seedsap3, test="Chi")
+summary(seedsap3)
+
+emmtreat <- emmeans (seedsap3, pairwise ~ Treatment) # creates pairwise comparisons
+emmtreat
+
+DJYear <- dfseed %>% 
+  group_by(Year, Treatment) %>% 
+  summarise(mean = mean(Drupelet.seed.number),
+            ste = sd(Drupelet.seed.number)/sqrt(length(Drupelet.seed.number)))
+
+DJTreat <- djseed %>% 
+  group_by(Treatment) %>% 
+  summarise(mean = mean(Drupelet.seed.number),
+            ste = sd(Drupelet.seed.number)/sqrt(length(Drupelet.seed.number)))
+
+SAPTreat <- sapseed %>% 
+  group_by(Treatment) %>% 
+  summarise(mean = mean(Drupelet.seed.number),
+            ste = sd(Drupelet.seed.number)/sqrt(length(Drupelet.seed.number)))
+
+djseed %>%
+  group_by(Year) %>%
+  summarise(mean = mean(Drupelet.seed.number), n = n())
+
+djseed %>%
+  group_by(Treatment) %>%
+  summarise(mean = mean(Drupelet.seed.number), n = n())
+
+sapseed %>%
+  group_by(Treatment) %>%
+  summarise(mean = mean(Drupelet.seed.number), n = n())
+
+dfseedmarket <- read.csv("2020-2021 Seed total marketable.csv")
+
+dfseedmarket %>%
+  group_by(Variety, Treatment) %>%
+  summarise(mean = mean(Drupelet.seed.number), n = n())
+
+dfseedmarket %>%
+  group_by(Treatment) %>%
+  summarise(mean = mean(Drupelet.seed.number), n = n())
+
+djmarketreason <-dj %>% 
+  group_by(Year, Treatment, Quality.size, Reason) %>%
+  tally()
+
+sapmarketreason <-sap %>% 
+  group_by(Year, Treatment, Quality.size, Reason) %>%
+  tally()
+
+
+
+
+
+
