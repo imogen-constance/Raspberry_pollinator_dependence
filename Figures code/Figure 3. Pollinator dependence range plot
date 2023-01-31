@@ -1,0 +1,45 @@
+##pollinator dependence range plot##
+
+theme_midge <- function(){theme(panel.grid.major = element_blank(), #create blank plot background
+                                panel.grid.minor = element_blank(),
+                                panel.background = element_blank(),
+                                axis.text=element_text(size=20, colour = "black"),
+                                axis.title=element_text(size=24,face="bold"),
+                                axis.line = element_line(colour = "black", size = .5, linetype = "solid"),
+                                axis.ticks = element_line(colour = "black", size = .5),
+                                axis.ticks.length = unit(6, "pt"),
+                                plot.margin = margin(2, 2, 1, 1, "cm"),
+                                legend.position = "none")}
+install.packages("ggplot2")
+library(ggplot2)
+
+install.packages("RColorBrewer")
+library(RColorBrewer)
+
+install.packages("dplyr")
+library(dplyr)
+
+PD <- read.csv(file.choose()) ##PD values
+
+install.packages("forcats")
+library(forcats)
+
+labs <- c("Total", "Marketable fruit weight", "Fruit weight", "Marketable fruit set (%)", "Fruit set (%)", "2021", "2020", "2019", "Sapphire", "Diamond Jubilee")
+
+PD$Group <- fct_relevel(PD$Group, "Total", "Marketable fruit weight", "Fruit weight", "Marketable fruit set", "Fruit set", "2021", "2020", "2019", "Sapphire", "Diamond Jubilee")
+
+pd <- ggplot(PD, aes(x=Group, y=PD, fill=Group)) + 
+  geom_boxplot()+
+  scale_fill_manual(values=c("#e7298a", "#7570b3", "#7570b3", "#7570b3", "#7570b3", "#d95f02", "#d95f02", "#d95f02", "#1b9e77", "#1b9e77"))+
+  #facet_wrap(~Variable, scales = "free_x", strip.position = "top")+
+  scale_x_discrete(labels= labs)+
+  geom_point()+
+  xlab("Variable\n") + ylab("\nPollinator dependence ratio")+
+  theme_midge()+
+  guides(fill='none')+
+  theme(axis.text.x = element_text())+
+  coord_flip()+
+  theme_midge()
+pd
+
+ggsave(file = "PDvarianceboxplot.png", width = 40, height = 25, units = "cm")
