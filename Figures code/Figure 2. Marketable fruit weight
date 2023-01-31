@@ -1,0 +1,113 @@
+##marketable fruit weight plots
+
+dffruit <- read.csv(file.choose()) #Fruit weight 2020 2021.csv
+names(dffruit)
+
+dffruit$Year <- factor(dffruit$Year)
+dffruit$Treatment <- factor(dffruit$Treatment, levels = c("Open", "HandOpen", "Closed", "Hand"))
+dffruit$Variety <- factor(dffruit$Variety)
+dffruit$Plant_ID <- factor(dffruit$Plant_ID)
+dffruit$Branch <- factor(dffruit$Branch)
+
+
+install.packages("dplyr")
+library(dplyr)
+install.packages("tidyverse")
+library(tidyverse)
+
+install.packages("ggplot2")
+library(ggplot2)
+
+dj<- subset(dffruit, Variety=="DJ")
+
+sap<- subset(dffruit, Variety=="Sap")
+
+install.packages("RColorBrewer")
+library(RColorBrewer)
+Treatlabs <- c("IP", "IPS", "IE", "IES")
+
+theme_midge <- function(){theme(panel.grid.major = element_blank(), #create blank plot background
+                                panel.grid.minor = element_blank(),
+                                panel.background = element_blank(),
+                                axis.text=element_text(size=14, colour = "black"),
+                                axis.title=element_text(size=16,face="bold"),
+                                axis.line = element_line(colour = "black", size = .5, linetype = "solid"),
+                                axis.ticks = element_line(colour = "black", size = .5),
+                                axis.ticks.length = unit(6, "pt"),
+                                plot.margin = margin(2, 2, 1, 1, "cm"),
+                                legend.text = element_text(size=12, colour = "black"),
+                                legend.title = element_text(size=14,face="bold"))}
+
+##treatment plots##
+
+dj %>%
+  group_by(Treatment) %>%
+  mutate(Weight_filtered = case_when(Marketable.weight - quantile(Marketable.weight)[4] > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     quantile(Marketable.weight)[2] - Marketable.weight > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Treatment, Marketable.weight, fill = Treatment, alpha = Treatment)) +
+  ylim(0, 12.5)+
+  geom_point(aes(Treatment, Weight_filtered, colour = Treatment, alpha = Treatment), position = position_jitterdodge(jitter.width = .9), size=.5)+
+  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = brewer.pal(4, "Dark2"))+
+  scale_alpha_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c(.8, .8, .8, .8))+
+  xlab("\nPollination treatment") + ylab("Marketable fruit weight (g)\n")+
+  guides(alpha = "none", fill = "none", colour = "none")+
+  scale_x_discrete(labels= Treatlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "Marketabledjweightplot.png", width = 17, height = 15, units = "cm")
+
+sap %>%
+  group_by(Treatment) %>%
+  mutate(Weight_filtered = case_when(Marketable.weight - quantile(Marketable.weight)[4] > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     quantile(Marketable.weight)[2] - Marketable.weight > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Treatment, Marketable.weight, fill = Treatment, alpha = Treatment)) + 
+  ylim(0, 12.5)+
+  geom_point(aes(Treatment, Weight_filtered, colour = Treatment, alpha = Treatment), position = position_jitterdodge(jitter.width = .9), size=.5)+
+  scale_fill_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  scale_alpha_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c(.8, .8, .8, .8))+
+  xlab("\nPollination treatment") + ylab("Marketable fruit weight (g)\n")+
+  guides(alpha = "none", fill = "none", colour = "none")+
+  scale_x_discrete(labels= Treatlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "Marketablesapweightplot.png", width = 17, height = 15, units = "cm")
+
+
+##year plots##
+Yearlabs <- c("2020", "2021")
+dj %>% group_by(Year) %>%
+  mutate(Weight_filtered = case_when(Marketable.weight - quantile(Marketable.weight)[4] > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     quantile(Marketable.weight)[2] - Marketable.weight > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Year, Marketable.weight, fill = Year)) + 
+  ylim(0, 12.5)+
+  geom_point(aes(Year, Marketable.weight, color = Treatment), position = position_jitterdodge(), size=.5)+ #add jittered data points
+  scale_fill_manual(breaks = c("2020", "2021"), labels = c("2020", "2021"), values = c("grey", "grey"))+
+  xlab("\nYear") + ylab("Marketable fruit weight (g)\n")+
+  guides(fill = "none", colour = "none")+
+  scale_x_discrete(labels= Yearlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "Marketabledjyearweightplot.png", width = 17, height = 15, units = "cm")
+
+sap %>%
+  group_by(Year) %>%
+  mutate(Weight_filtered = case_when(Marketable.weight - quantile(Marketable.weight)[4] > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     quantile(Marketable.weight)[2] - Marketable.weight > 1.5*IQR(Marketable.weight) ~ NA_real_,
+                                     TRUE ~ Weight)) %>%
+  ggplot() + geom_boxplot(aes(Year, Marketable.weight, fill = Year)) + 
+  ylim(0, 12.5)+
+  geom_point(aes(Year, Marketable.weight, color = Treatment), position = position_jitterdodge(), size=.5)+ #add jittered data points
+  scale_fill_manual(breaks = c("2020", "2021"), labels = c("2020", "2021"), values = c("grey", "grey"))+
+  xlab("\nYear") + ylab("Marketable fruit weight (g)\n")+
+  guides(fill = "none", colour = "none")+
+  scale_x_discrete(labels= Yearlabs)+
+  scale_color_manual(breaks = c("Open", "HandOpen", "Closed", "Hand"), labels = c("IP", "IPS", "IE", "IES"), values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a"))+
+  theme_midge()
+
+ggsave(file = "Marketablesapyearweightplot.png", width = 17, height = 15, units = "cm")
